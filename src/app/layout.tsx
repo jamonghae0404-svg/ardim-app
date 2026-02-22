@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { BottomNav, SideNav } from "@/components/nav";
 
@@ -14,10 +15,14 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "스마트 출석부",
+    statusBarStyle: "black-translucent",
+    title: "아르딤 스마트 출석부",
   },
   formatDetection: { telephone: false },
+  icons: {
+    apple: "/apple-icon",
+    icon: "/icon",
+  },
   other: {
     "mobile-web-app-capable": "yes",
     "apple-mobile-web-app-capable": "yes",
@@ -46,6 +51,11 @@ export default function RootLayout({
           </main>
         </div>
         <BottomNav />
+        <Script id="sw-register" strategy="afterInteractive">
+          {`if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+          }`}
+        </Script>
       </body>
     </html>
   );
