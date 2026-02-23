@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 import { OPERATOR_KEY } from "@/lib/storage";
 import { Building2, UserCircle2, ArrowRight } from "lucide-react";
 
@@ -21,20 +21,13 @@ export function useOperator(): OperatorContextValue {
 // ── Provider ─────────────────────────────────────────
 export function OperatorProvider({ children }: { children: React.ReactNode }) {
   /**
-   * isConfirmed: 매 접속/새로고침마다 false로 시작.
-   * 사용자가 확인 버튼을 눌러야만 true가 되고 앱이 열림.
-   * localStorage에 이름이 저장되어 있어도 자동 통과하지 않음.
+   * operatorName: 무조건 null로 시작.
+   * useEffect 없음 — localStorage 자동 읽기/자동 통과 완전 제거.
+   * 오직 버튼 클릭(handleConfirm)만이 operatorName을 설정할 수 있음.
    */
-  const [isConfirmed,  setIsConfirmed]  = useState(false);
-  const [operatorName, setOperatorName] = useState("");
+  const [operatorName, setOperatorName] = useState<string | null>(null);
   const [inputValue,   setInputValue]   = useState("");
   const [error,        setError]        = useState("");
-
-  // 이전에 저장된 이름을 입력창에 pre-fill (자동 로그인 X)
-  useEffect(() => {
-    const saved = localStorage.getItem(OPERATOR_KEY);
-    if (saved) setInputValue(saved);
-  }, []);
 
   const handleConfirm = () => {
     const name = inputValue.trim();
@@ -42,21 +35,18 @@ export function OperatorProvider({ children }: { children: React.ReactNode }) {
       setError("담당자 이름을 입력해 주세요.");
       return;
     }
-    // 이름 저장 (다음 접속 시 pre-fill용)
     localStorage.setItem(OPERATOR_KEY, name);
     setOperatorName(name);
-    setIsConfirmed(true);
     setError("");
   };
 
-  // 담당자 전환: 확인 상태만 초기화, localStorage는 pre-fill용으로 유지
   const clearOperator = () => {
-    setIsConfirmed(false);
-    setOperatorName("");
+    setOperatorName(null);
+    setInputValue("");
   };
 
-  // ── 확인 전 → 로그인/확인 화면 ──────────────────────
-  if (!isConfirmed) {
+  // ── operatorName === null → 무조건 입력 화면 ──────────
+  if (operatorName === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-xl shadow-blue-100/60 p-8 w-full max-w-sm border border-gray-100">
@@ -74,7 +64,7 @@ export function OperatorProvider({ children }: { children: React.ReactNode }) {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-semibold text-gray-700 block mb-1.5">
-                담당자 이름 확인
+                담당자 이름
               </label>
               <div className="relative">
                 <UserCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-400" />
@@ -90,12 +80,6 @@ export function OperatorProvider({ children }: { children: React.ReactNode }) {
               </div>
               {error && (
                 <p className="text-xs text-red-500 mt-1.5 pl-1">{error}</p>
-              )}
-              {/* pre-fill 안내 */}
-              {inputValue && (
-                <p className="text-[11px] text-blue-400 mt-1.5 pl-1">
-                  이전에 사용한 이름입니다. 확인 후 입장하세요.
-                </p>
               )}
             </div>
 
@@ -117,7 +101,7 @@ export function OperatorProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // ── 확인 완료 → 앱 렌더 ──────────────────────────────
+  // ── operatorName 확정 → 앱 렌더 ──────────────────────
   return (
     <OperatorContext.Provider value={{ operatorName, clearOperator }}>
       {children}
