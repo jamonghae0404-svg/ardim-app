@@ -3,6 +3,8 @@ import { Geist } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { BottomNav, SideNav } from "@/components/nav";
+import { OperatorProvider } from "@/components/operator-provider";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,13 +46,19 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${geistSans.variable} antialiased bg-gray-50 font-sans`}>
-        <div className="flex min-h-screen">
-          <SideNav />
-          <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
-            {children}
-          </main>
-        </div>
-        <BottomNav />
+        <OperatorProvider>
+          <div className="flex min-h-screen">
+            <SideNav />
+            <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+              {children}
+            </main>
+          </div>
+          <BottomNav />
+        </OperatorProvider>
+
+        {/* PWA 설치 버튼 — OperatorProvider 외부에서 항상 표시 */}
+        <PwaInstallButton />
+
         <Script id="sw-register" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js');

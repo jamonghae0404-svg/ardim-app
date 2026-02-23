@@ -1,0 +1,187 @@
+{
+  "version": "2.0",
+  "lastUpdated": "2026-02-23T11:50:33.739Z",
+  "activeFeatures": [
+    "public",
+    "welfare-attendance",
+    "attendance",
+    "admin",
+    "stats"
+  ],
+  "primaryFeature": "public",
+  "features": {
+    "public": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-22T14:57:24.597Z",
+        "lastUpdated": "2026-02-22T14:57:24.597Z"
+      },
+      "lastFile": "C:/Users/korol/Desktop/Claude Bin/아르딤/출석부/welfare-attendance/public/sw.js"
+    },
+    "welfare-attendance": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-22T14:57:36.728Z",
+        "lastUpdated": "2026-02-23T11:50:33.739Z"
+      },
+      "lastFile": "C:\\Users\\korol\\Desktop\\Claude Bin\\아르딤\\출석부\\welfare-attendance\\src\\components\\nav.tsx"
+    },
+    "attendance": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-23T11:45:14.034Z",
+        "lastUpdated": "2026-02-23T11:45:14.034Z"
+      },
+      "lastFile": "C:\\Users\\korol\\Desktop\\Claude Bin\\아르딤\\출석부\\welfare-attendance\\src\\app\\attendance\\page.tsx"
+    },
+    "admin": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-23T11:46:12.412Z",
+        "lastUpdated": "2026-02-23T11:46:12.412Z"
+      },
+      "lastFile": "C:\\Users\\korol\\Desktop\\Claude Bin\\아르딤\\출석부\\welfare-attendance\\src\\app\\admin\\page.tsx"
+    },
+    "stats": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-23T11:47:47.853Z",
+        "lastUpdated": "2026-02-23T11:47:47.853Z"
+      },
+      "lastFile": "C:\\Users\\korol\\Desktop\\Claude Bin\\아르딤\\출석부\\welfare-attendance\\src\\app\\stats\\page.tsx"
+    }
+  },
+  "pipeline": {
+    "currentPhase": 1,
+    "level": "Dynamic",
+    "phaseHistory": []
+  },
+  "session": {
+    "startedAt": "2026-02-22T14:51:57.724Z",
+    "onboardingCompleted": false,
+    "lastActivity": "2026-02-23T11:50:33.739Z"
+  },
+  "history": [
+    {
+      "timestamp": "2026-02-22T14:57:24.597Z",
+      "feature": "public",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-22T14:57:36.728Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-22T14:57:42.379Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-22T14:57:47.945Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-22T14:57:56.498Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-22T14:58:00.945Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:41:20.094Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:41:38.071Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:42:33.906Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:42:57.635Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:45:14.034Z",
+      "feature": "attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:46:12.412Z",
+      "feature": "admin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:47:47.853Z",
+      "feature": "stats",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:48:09.009Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:50:08.853Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-23T11:50:33.739Z",
+      "feature": "welfare-attendance",
+      "phase": "do",
+      "action": "updated"
+    }
+  ]
+}

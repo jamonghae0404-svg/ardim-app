@@ -8,80 +8,150 @@ export default function Icon() {
     (
       <div
         style={{
-          background: '#2563EB',
+          background: 'linear-gradient(150deg, #1e3a8a 0%, #1d4ed8 52%, #3b82f6 100%)',
           width: '100%',
           height: '100%',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: 90,
-          gap: 16,
+          borderRadius: 96,
         }}
       >
-        {/* Calendar body */}
+        {/* Calendar card */}
         <div
           style={{
             background: 'white',
-            width: 280,
-            height: 280,
+            width: 312,
+            height: 324,
             borderRadius: 28,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.32)',
           }}
         >
-          {/* Calendar header */}
+          {/* Header */}
           <div
             style={{
-              background: '#1d4ed8',
-              height: 72,
+              background: 'linear-gradient(160deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%)',
+              height: 90,
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-end',
               justifyContent: 'center',
-              gap: 8,
+              gap: 42,
             }}
           >
-            <div style={{ background: 'white', width: 12, height: 28, borderRadius: 4 }} />
-            <div style={{ background: 'white', width: 12, height: 28, borderRadius: 4 }} />
+            {/* Left ring */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div
+                style={{
+                  width: 14,
+                  height: 10,
+                  background: 'rgba(255,255,255,0.35)',
+                  borderRadius: '5px 5px 0 0',
+                }}
+              />
+              <div
+                style={{
+                  width: 14,
+                  height: 30,
+                  background: 'white',
+                  borderRadius: '0 0 5px 5px',
+                  boxShadow: '0 3px 8px rgba(0,0,0,0.18)',
+                }}
+              />
+            </div>
+            {/* Right ring */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div
+                style={{
+                  width: 14,
+                  height: 10,
+                  background: 'rgba(255,255,255,0.35)',
+                  borderRadius: '5px 5px 0 0',
+                }}
+              />
+              <div
+                style={{
+                  width: 14,
+                  height: 30,
+                  background: 'white',
+                  borderRadius: '0 0 5px 5px',
+                  boxShadow: '0 3px 8px rgba(0,0,0,0.18)',
+                }}
+              />
+            </div>
           </div>
-          {/* Checkmark area */}
+
+          {/* Body */}
           <div
             style={{
               flex: 1,
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: 14,
+              padding: '16px 20px 22px',
             }}
           >
-            {/* Checkmark using two rectangles */}
-            <div style={{ position: 'relative', width: 120, height: 100 }}>
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  bottom: 0,
-                  width: 48,
-                  height: 16,
-                  background: '#2563EB',
-                  borderRadius: 8,
-                  transform: 'rotate(45deg)',
-                  transformOrigin: 'left bottom',
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  bottom: 16,
-                  width: 96,
-                  height: 16,
-                  background: '#2563EB',
-                  borderRadius: 8,
-                  transform: 'rotate(-55deg)',
-                  transformOrigin: 'right bottom',
-                }}
-              />
+            {/* Day indicator row — 7 squares */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ width: 28, height: 22, borderRadius: 7, background: '#f3f4f6' }} />
+              <div style={{ width: 28, height: 22, borderRadius: 7, background: '#f3f4f6' }} />
+              <div style={{ width: 28, height: 22, borderRadius: 7, background: '#dbeafe' }} />
+              <div style={{ width: 28, height: 22, borderRadius: 7, background: '#f3f4f6' }} />
+              <div style={{ width: 28, height: 22, borderRadius: 7, background: '#f3f4f6' }} />
+              <div style={{ width: 28, height: 22, borderRadius: 7, background: '#f3f4f6' }} />
+              <div style={{ width: 28, height: 22, borderRadius: 7, background: '#f3f4f6' }} />
+            </div>
+
+            {/* Emerald checkmark badge */}
+            <div
+              style={{
+                width: 116,
+                height: 116,
+                borderRadius: 58,
+                background: 'linear-gradient(135deg, #047857 0%, #059669 40%, #10b981 100%)',
+                boxShadow: '0 12px 36px rgba(5,150,105,0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {/* Checkmark — two-rectangle approach */}
+              <div style={{ position: 'relative', width: 64, height: 52 }}>
+                {/* Short left arm */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    bottom: 0,
+                    width: 28,
+                    height: 14,
+                    background: 'white',
+                    borderRadius: 7,
+                    transform: 'rotate(45deg)',
+                    transformOrigin: 'left bottom',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.14)',
+                  }}
+                />
+                {/* Long right arm */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    bottom: 20,
+                    width: 54,
+                    height: 14,
+                    background: 'white',
+                    borderRadius: 7,
+                    transform: 'rotate(-55deg)',
+                    transformOrigin: 'right bottom',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.14)',
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

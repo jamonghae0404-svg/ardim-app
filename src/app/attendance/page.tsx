@@ -9,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
-  STORAGE_KEYS, getTodayKey, formatDateKR, calcStats,
+  getStorageKeys, getTodayKey, formatDateKR, calcStats,
   type Program, type Member, type AttendanceData, type AttendanceStatus,
 } from "@/lib/storage";
+import { useOperator } from "@/components/operator-provider";
 
 // ─────────────────────────────────────────────────────
 // 출석 상태 버튼
@@ -90,7 +91,7 @@ function MemberRow({
 }
 
 // ─────────────────────────────────────────────────────
-// 멤버 목록 (TabsContent 내부)
+// 멤버 목록
 // ─────────────────────────────────────────────────────
 function MemberList({
   members,
@@ -129,6 +130,8 @@ function MemberList({
 // 메인 페이지
 // ─────────────────────────────────────────────────────
 export default function AttendancePage() {
+  const { operatorName } = useOperator();
+
   const [programs,       setPrograms]       = useState<Program[]>([]);
   const [members,        setMembers]         = useState<Member[]>([]);
   const [attendanceData, setAttendanceData]  = useState<AttendanceData>({});
@@ -138,22 +141,26 @@ export default function AttendancePage() {
 
   // ── localStorage 로드 ────────────────────────────────
   useEffect(() => {
+    const KEYS = getStorageKeys(operatorName);
     try {
-      const p = localStorage.getItem(STORAGE_KEYS.PROGRAMS);
-      const m = localStorage.getItem(STORAGE_KEYS.MEMBERS);
-      const a = localStorage.getItem(STORAGE_KEYS.ATTENDANCE);
+      const p = localStorage.getItem(KEYS.PROGRAMS);
+      const m = localStorage.getItem(KEYS.MEMBERS);
+      const a = localStorage.getItem(KEYS.ATTENDANCE);
       if (p) setPrograms(JSON.parse(p));
       if (m) setMembers(JSON.parse(m));
       if (a) setAttendanceData(JSON.parse(a));
     } catch { /* 손상된 데이터 무시 */ }
     setIsLoaded(true);
-  }, []);
+  }, [operatorName]);
 
   // ── 출석 데이터 저장 ─────────────────────────────────
   useEffect(() => {
     if (!isLoaded) return;
-    localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendanceData));
-  }, [attendanceData, isLoaded]);
+    localStorage.setItem(
+      getStorageKeys(operatorName).ATTENDANCE,
+      JSON.stringify(attendanceData)
+    );
+  }, [attendanceData, isLoaded, operatorName]);
 
   // ── 출석 토글 ─────────────────────────────────────────
   const toggleStatus = (memberId: string, next: "present" | "absent") => {
@@ -275,7 +282,6 @@ export default function AttendancePage() {
             출석 명단
           </CardTitle>
 
-          {/* 프로그램이 없을 때 */}
           {programs.length === 0 ? (
             <div className="py-2 mb-1">
               <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
@@ -283,12 +289,8 @@ export default function AttendancePage() {
               </p>
             </div>
           ) : (
-            /* 프로그램 탭 */
             <div className="overflow-x-auto -mx-1 pb-1">
-              <Tabs
-                value={activeTab}
-                onValueChange={(v) => setActiveTab(v)}
-              >
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
                 <TabsList className="bg-gray-100 p-1 rounded-xl flex w-max gap-0.5">
                   <TabsTrigger
                     value="all"
@@ -316,16 +318,9 @@ export default function AttendancePage() {
                   })}
                 </TabsList>
 
-                {/* 전체 탭 콘텐츠 */}
                 <TabsContent value="all" className="mt-0 pt-3">
-                  <MemberList
-                    members={members}
-                    dayRecord={dayRecord}
-                    onToggle={toggleStatus}
-                  />
+                  <MemberList members={members} dayRecord={dayRecord} onToggle={toggleStatus} />
                 </TabsContent>
-
-                {/* 프로그램별 탭 콘텐츠 */}
                 {programs.map((p) => (
                   <TabsContent key={p.id} value={p.id} className="mt-0 pt-3">
                     <MemberList
@@ -340,7 +335,6 @@ export default function AttendancePage() {
           )}
         </CardHeader>
 
-        {/* 프로그램 없을 때 빈 명단 */}
         {programs.length === 0 && (
           <CardContent className="px-5 pb-5">
             <MemberList members={[]} dayRecord={{}} onToggle={() => {}} />

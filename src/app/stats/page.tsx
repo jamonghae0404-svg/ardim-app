@@ -12,15 +12,15 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
-  STORAGE_KEYS,
+  getStorageKeys,
   type Program, type Member, type AttendanceData,
 } from "@/lib/storage";
+import { useOperator } from "@/components/operator-provider";
 
 // ═══════════════════════════════════════════════════
 // 날짜 유틸
 // ═══════════════════════════════════════════════════
 
-/** 지정 연월의 1일~말일 ISO 배열 (month: 1-indexed) */
 function getMonthDates(year: number, month: number): string[] {
   const days = new Date(year, month, 0).getDate();
   return Array.from({ length: days }, (_, i) => {
@@ -29,10 +29,6 @@ function getMonthDates(year: number, month: number): string[] {
   });
 }
 
-/**
- * 선택된 주차 ISO 배열 반환
- * week: "all" | "1"(1~7일) | "2"(8~14일) | "3"(15~21일) | "4"(22일~말일)
- */
 function getSelectedWeekDates(year: number, month: number, week: string): string[] {
   const all = getMonthDates(year, month);
   const slices: Record<string, [number, number]> = {
@@ -46,19 +42,16 @@ function getSelectedWeekDates(year: number, month: number, week: string): string
   return all.slice(s, e);
 }
 
-/** ISO → "YYYY.MM.DD" */
 function fullDate(iso: string) {
   const [y, m, d] = iso.split("-");
   return `${y}.${m}.${d}`;
 }
 
-/** ISO → "M/D" 단형 */
 function shortDate(iso: string) {
   const [, m, d] = iso.split("-");
   return `${parseInt(m)}/${parseInt(d)}`;
 }
 
-/** dates 배열의 시작~끝 날짜 범위 문자열 */
 function dateRange(dates: string[]): string {
   if (dates.length === 0) return "-";
   return `${fullDate(dates[0])} ~ ${fullDate(dates[dates.length - 1])}`;
@@ -104,7 +97,7 @@ function calcRate({ 등록인원, 진행횟수, 연인원 }: PeriodStats) {
 }
 
 // ═══════════════════════════════════════════════════
-// CSV 다운로드 (선택월 전체 기준)
+// CSV 다운로드
 // ═══════════════════════════════════════════════════
 
 function downloadCSV(
@@ -173,29 +166,30 @@ const WEEK_OPTIONS  = [
 // ═══════════════════════════════════════════════════
 
 export default function StatsPage() {
+  const { operatorName } = useOperator();
+
   const [programs,       setPrograms]       = useState<Program[]>([]);
   const [members,        setMembers]        = useState<Member[]>([]);
   const [attendanceData, setAttendanceData] = useState<AttendanceData>({});
 
-  // 필터 상태
   const [filterProgram, setFilterProgram]   = useState("all");
   const [selectedYear,  setSelectedYear]    = useState(CURRENT_YEAR);
   const [selectedMonth, setSelectedMonth]   = useState(CURRENT_MONTH);
-  const [selectedWeek,  setSelectedWeek]    = useState("all");  // ← 신규
+  const [selectedWeek,  setSelectedWeek]    = useState("all");
 
   // ── 로드 ─────────────────────────────────────────
   useEffect(() => {
+    const KEYS = getStorageKeys(operatorName);
     try {
-      const p = localStorage.getItem(STORAGE_KEYS.PROGRAMS);
-      const m = localStorage.getItem(STORAGE_KEYS.MEMBERS);
-      const a = localStorage.getItem(STORAGE_KEYS.ATTENDANCE);
+      const p = localStorage.getItem(KEYS.PROGRAMS);
+      const m = localStorage.getItem(KEYS.MEMBERS);
+      const a = localStorage.getItem(KEYS.ATTENDANCE);
       if (p) setPrograms(JSON.parse(p));
       if (m) setMembers(JSON.parse(m));
       if (a) setAttendanceData(JSON.parse(a));
     } catch { /* 무시 */ }
-  }, []);
+  }, [operatorName]);
 
-  // 월이 바뀌면 주차를 "전체"로 초기화
   useEffect(() => { setSelectedWeek("all"); }, [selectedYear, selectedMonth]);
 
   // ── 날짜 범위 계산 ───────────────────────────────
@@ -208,7 +202,6 @@ export default function StatsPage() {
     [selectedYear, selectedMonth, selectedWeek],
   );
 
-  // ── 필터된 이용자 ────────────────────────────────
   const targetMembers = useMemo(
     () => filterProgram === "all"
       ? members
@@ -216,7 +209,6 @@ export default function StatsPage() {
     [filterProgram, members],
   );
 
-  // ── 주차 / 월 통계 ───────────────────────────────
   const weekStats  = useMemo(
     () => calcPeriodStats(weekDates,  targetMembers, attendanceData),
     [weekDates, targetMembers, attendanceData],
@@ -226,7 +218,6 @@ export default function StatsPage() {
     [monthDates, targetMembers, attendanceData],
   );
 
-  // ── 주차 일별 막대 데이터 ────────────────────────
   const barData = useMemo(() => {
     const idSet = new Set(targetMembers.map((m) => m.id));
     return weekDates.map((date) => ({
@@ -238,7 +229,6 @@ export default function StatsPage() {
   }, [weekDates, targetMembers, attendanceData]);
   const maxBar = Math.max(...barData.map((d) => d.count), 1);
 
-  // ── 프로그램별 선택월 현황 ───────────────────────
   const programBreakdown = useMemo(() =>
     programs.map((p) => ({
       program: p,
@@ -247,7 +237,6 @@ export default function StatsPage() {
     [programs, members, monthDates, attendanceData],
   );
 
-  // ── 레이블 ──────────────────────────────────────
   const monthLabel   = `${selectedYear}년 ${selectedMonth}월`;
   const weekOpt      = WEEK_OPTIONS.find((w) => w.value === selectedWeek);
   const weekShort    = selectedWeek === "all" ? "전체" : `${selectedWeek}주차`;
@@ -256,30 +245,26 @@ export default function StatsPage() {
     ? "전체 프로그램"
     : programs.find((p) => p.id === filterProgram)?.name ?? "전체";
   const isCurrentMonth = selectedYear === CURRENT_YEAR && selectedMonth === CURRENT_MONTH;
-  const manyBars = weekDates.length > 14; // 15일 이상이면 레이블 생략
+  const manyBars = weekDates.length > 14;
 
   // ── 렌더 ─────────────────────────────────────────
   return (
     <div className="flex-1 p-4 md:p-6 pb-24 md:pb-6 space-y-4 max-w-5xl mx-auto w-full">
 
-      {/* 제목 */}
       <div className="pt-2">
         <h1 className="text-xl font-bold text-gray-900">통계</h1>
         <p className="text-sm text-gray-400 mt-0.5">실인원 · 연인원 현황</p>
       </div>
 
-      {/* ══ 필터 카드 (Bento Grid 스타일) ══ */}
+      {/* ══ 필터 카드 ══ */}
       <Card className="border-0 bg-white shadow-sm">
         <CardContent className="p-4 space-y-3">
-          {/* 필터 라벨 */}
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-3.5 w-3.5 text-gray-400" />
             <span className="text-xs font-semibold text-gray-500">조회 필터</span>
           </div>
 
-          {/* 필터 컨트롤 */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* 프로그램 */}
             <Select value={filterProgram} onValueChange={setFilterProgram}>
               <SelectTrigger className="h-9 w-36 rounded-xl border-gray-200 text-xs">
                 <SelectValue placeholder="전체 프로그램" />
@@ -294,7 +279,6 @@ export default function StatsPage() {
 
             <div className="h-5 w-px bg-gray-200 shrink-0" />
 
-            {/* 연도 */}
             <Select
               value={String(selectedYear)}
               onValueChange={(v) => setSelectedYear(Number(v))}
@@ -309,7 +293,6 @@ export default function StatsPage() {
               </SelectContent>
             </Select>
 
-            {/* 월 */}
             <Select
               value={String(selectedMonth)}
               onValueChange={(v) => setSelectedMonth(Number(v))}
@@ -324,7 +307,6 @@ export default function StatsPage() {
               </SelectContent>
             </Select>
 
-            {/* 주차 ← 신규 */}
             <Select value={selectedWeek} onValueChange={setSelectedWeek}>
               <SelectTrigger className="h-9 w-40 rounded-xl border-gray-200 text-xs">
                 <SelectValue />
@@ -336,7 +318,6 @@ export default function StatsPage() {
               </SelectContent>
             </Select>
 
-            {/* 다운로드 */}
             <Button
               onClick={() =>
                 downloadCSV(selectedYear, selectedMonth, monthDates,
@@ -350,7 +331,6 @@ export default function StatsPage() {
             </Button>
           </div>
 
-          {/* 현재 조회 조건 요약 */}
           <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
             <span className="text-gray-400">현재 조회</span>
             <span className="text-gray-300">·</span>
@@ -368,7 +348,6 @@ export default function StatsPage() {
             <span className="bg-gray-50 text-gray-600 px-2 py-0.5 rounded-full font-medium">
               {weekShort}
             </span>
-            {/* 날짜 범위 */}
             <span className="text-gray-300 text-[10px] hidden sm:inline">
               {weekRange}
             </span>
@@ -379,7 +358,6 @@ export default function StatsPage() {
       {/* ══ Bento Grid ══ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 
-        {/* 주차 통계 ─────────────────────────── */}
         <Card className="col-span-2 border-0 bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-200/50">
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -395,10 +373,7 @@ export default function StatsPage() {
                     {weekOpt?.label.split(" ")[0] ?? "전체"}
                   </span>
                 </div>
-                {/* 날짜 범위 표시 ← 신규 */}
-                <p className="text-[10px] text-blue-300 mt-0.5 truncate">
-                  {weekRange}
-                </p>
+                <p className="text-[10px] text-blue-300 mt-0.5 truncate">{weekRange}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -416,7 +391,6 @@ export default function StatsPage() {
           </CardContent>
         </Card>
 
-        {/* 선택월 통계 ─────────────────────────── */}
         <Card className="col-span-2 border-0 bg-gradient-to-br from-violet-600 to-violet-700 text-white shadow-lg shadow-violet-200/50">
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -445,7 +419,6 @@ export default function StatsPage() {
           </CardContent>
         </Card>
 
-        {/* 소카드 4개 ─────────────────────────── */}
         <Card className="border-0 bg-blue-50 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-1.5 mb-3">
@@ -490,7 +463,7 @@ export default function StatsPage() {
           </CardContent>
         </Card>
 
-        {/* 주차 일별 막대 차트 ─────────────────── */}
+        {/* 일별 막대 차트 */}
         <Card className="col-span-2 md:col-span-4 border-0 bg-white shadow-sm">
           <CardHeader className="pb-2 px-5 pt-5">
             <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -515,13 +488,11 @@ export default function StatsPage() {
                     const isToday = date === TODAY_KEY;
                     return (
                       <div key={date} className="flex-1 flex flex-col items-center gap-0.5" style={{ minWidth: 20 }}>
-                        {/* 카운트 (20일 이상이면 생략) */}
                         {!manyBars && (
                           <span className="text-[10px] text-gray-500 font-medium h-4">
                             {count > 0 ? count : ""}
                           </span>
                         )}
-                        {/* 막대 */}
                         <div className="w-full flex items-end justify-center" style={{ height: 64 }}>
                           <div
                             className={`w-full rounded-t-md transition-all duration-500 ${
@@ -532,7 +503,6 @@ export default function StatsPage() {
                             style={{ height: count === 0 ? 3 : `${Math.max(pct, 6)}%` }}
                           />
                         </div>
-                        {/* 날짜 레이블 */}
                         <span className={`text-[9px] font-medium ${isToday ? "text-blue-600" : "text-gray-400"}`}>
                           {shortDate(date)}
                         </span>
@@ -545,7 +515,7 @@ export default function StatsPage() {
           </CardContent>
         </Card>
 
-        {/* 프로그램별 선택월 현황 ─────────────── */}
+        {/* 프로그램별 현황 */}
         <Card className="col-span-2 md:col-span-4 border-0 bg-white shadow-sm">
           <CardHeader className="pb-2 px-5 pt-5">
             <div className="flex items-center justify-between">
@@ -602,9 +572,9 @@ export default function StatsPage() {
                       </div>
                       <div className="grid grid-cols-4 gap-1.5">
                         {[
-                          { label: "실인원", val: 실인원,       bg: "bg-blue-50",    color: "text-blue-700",    sub: "text-blue-500"    },
-                          { label: "연인원", val: 연인원,       bg: "bg-violet-50",  color: "text-violet-700",  sub: "text-violet-500"  },
-                          { label: "진행",   val: `${진행횟수}회`, bg: "bg-gray-50",   color: "text-gray-700",    sub: "text-gray-500"    },
+                          { label: "실인원", val: 실인원,          bg: "bg-blue-50",    color: "text-blue-700",    sub: "text-blue-500"    },
+                          { label: "연인원", val: 연인원,          bg: "bg-violet-50",  color: "text-violet-700",  sub: "text-violet-500"  },
+                          { label: "진행",   val: `${진행횟수}회`, bg: "bg-gray-50",    color: "text-gray-700",    sub: "text-gray-500"    },
                           { label: "등록",   val: `${등록인원}명`, bg: "bg-emerald-50", color: "text-emerald-700", sub: "text-emerald-500" },
                         ].map(({ label, val, bg, color, sub }) => (
                           <div key={label} className={`text-center ${bg} rounded-lg p-2`}>

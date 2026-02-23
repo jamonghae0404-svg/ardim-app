@@ -14,9 +14,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  STORAGE_KEYS, getTodayKey, formatDateKR,
+  getStorageKeys, getTodayKey, formatDateKR,
   type Program, type Member,
 } from "@/lib/storage";
+import { useOperator } from "@/components/operator-provider";
 
 // ── 전화번호 자동 하이픈 ──────────────────────────────────
 function formatPhone(value: string) {
@@ -28,6 +29,8 @@ function formatPhone(value: string) {
 
 // ─────────────────────────────────────────────────────────
 export default function AdminPage() {
+  const { operatorName } = useOperator();
+
   // ── 상태 ────────────────────────────────────────────────
   const [programs,     setPrograms]     = useState<Program[]>([]);
   const [members,      setMembers]      = useState<Member[]>([]);
@@ -41,33 +44,40 @@ export default function AdminPage() {
   const [memberName,    setMemberName]    = useState("");
   const [memberPhone,   setMemberPhone]   = useState("");
   const [memberProgram, setMemberProgram] = useState("");
-  const [memberDate,    setMemberDate]    = useState(getTodayKey()); // ← 날짜 선택
+  const [memberDate,    setMemberDate]    = useState(getTodayKey());
   const [memberError,   setMemberError]   = useState("");
 
   // 테이블 필터
-  const [filterProgram, setFilterProgram] = useState("all"); // ← 프로그램 필터
+  const [filterProgram, setFilterProgram] = useState("all");
 
   // ── localStorage 로드 ────────────────────────────────────
   useEffect(() => {
+    const KEYS = getStorageKeys(operatorName);
     try {
-      const p = localStorage.getItem(STORAGE_KEYS.PROGRAMS);
-      const m = localStorage.getItem(STORAGE_KEYS.MEMBERS);
+      const p = localStorage.getItem(KEYS.PROGRAMS);
+      const m = localStorage.getItem(KEYS.MEMBERS);
       if (p) setPrograms(JSON.parse(p));
       if (m) setMembers(JSON.parse(m));
     } catch { /* 손상된 데이터 무시 */ }
     setIsLoaded(true);
-  }, []);
+  }, [operatorName]);
 
   // ── localStorage 저장 ────────────────────────────────────
   useEffect(() => {
     if (!isLoaded) return;
-    localStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
-  }, [programs, isLoaded]);
+    localStorage.setItem(
+      getStorageKeys(operatorName).PROGRAMS,
+      JSON.stringify(programs)
+    );
+  }, [programs, isLoaded, operatorName]);
 
   useEffect(() => {
     if (!isLoaded) return;
-    localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(members));
-  }, [members, isLoaded]);
+    localStorage.setItem(
+      getStorageKeys(operatorName).MEMBERS,
+      JSON.stringify(members)
+    );
+  }, [members, isLoaded, operatorName]);
 
   // ── 프로그램 추가 ─────────────────────────────────────────
   const addProgram = () => {
@@ -107,7 +117,7 @@ export default function AdminPage() {
         phone:       memberPhone,
         programId:   memberProgram,
         programName: program.name,
-        createdAt:   memberDate, // ISO 형식으로 저장
+        createdAt:   memberDate,
       },
     ]);
     setMemberName("");
@@ -234,14 +244,12 @@ export default function AdminPage() {
         </CardHeader>
         <CardContent className="px-5 pb-5 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {/* 성함 */}
             <Input
               placeholder="이용자 성함 *"
               value={memberName}
               onChange={(e) => { setMemberName(e.target.value); setMemberError(""); }}
               className="h-10 rounded-xl border-gray-200 focus:border-blue-400"
             />
-            {/* 전화번호 */}
             <Input
               placeholder="전화번호 (선택)"
               value={memberPhone}
@@ -250,7 +258,6 @@ export default function AdminPage() {
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {/* 프로그램 선택 */}
             <Select
               value={memberProgram}
               onValueChange={(v) => { setMemberProgram(v); setMemberError(""); }}
@@ -271,7 +278,6 @@ export default function AdminPage() {
               </SelectContent>
             </Select>
 
-            {/* 등록일 선택 ← 새로운 기능 */}
             <div className="relative">
               <input
                 type="date"
@@ -314,7 +320,6 @@ export default function AdminPage() {
               </span>
             </CardTitle>
 
-            {/* 프로그램 필터 ← 새로운 기능 */}
             <div className="flex items-center gap-2">
               <Filter className="h-3.5 w-3.5 text-gray-400 shrink-0" />
               <Select value={filterProgram} onValueChange={setFilterProgram}>

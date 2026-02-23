@@ -3,11 +3,21 @@
 // admin / attendance 페이지가 동일한 키로 데이터를 공유합니다.
 // =====================================================
 
-export const STORAGE_KEYS = {
-  PROGRAMS:   "welfare-programs",
-  MEMBERS:    "welfare-members",
-  ATTENDANCE: "welfare-attendance",
-} as const;
+/** 담당자 이름을 저장하는 전역 키 */
+export const OPERATOR_KEY = "welfare-operator";
+
+/**
+ * 담당자 이름을 기반으로 개인화된 스토리지 키를 반환합니다.
+ * 각 담당자의 데이터가 완전히 분리되어 저장됩니다.
+ */
+export function getStorageKeys(operator: string) {
+  const prefix = `welfare-${operator}`;
+  return {
+    PROGRAMS:   `${prefix}-programs`,
+    MEMBERS:    `${prefix}-members`,
+    ATTENDANCE: `${prefix}-attendance`,
+  } as const;
+}
 
 // ── 타입 ──────────────────────────────────────────────
 export type AttendanceStatus = "present" | "absent" | "unset";

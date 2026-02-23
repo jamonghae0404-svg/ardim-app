@@ -2,20 +2,38 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardCheck, BarChart3, Settings, Building2 } from "lucide-react";
+import { ClipboardCheck, BarChart3, Settings, Building2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useOperator } from "@/components/operator-provider";
 
 const navItems = [
   { href: "/attendance", label: "출석체크", icon: ClipboardCheck },
-  { href: "/stats", label: "통계", icon: BarChart3 },
-  { href: "/admin", label: "관리자", icon: Settings },
+  { href: "/stats",      label: "통계",     icon: BarChart3      },
+  { href: "/admin",      label: "관리자",   icon: Settings       },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { operatorName, clearOperator } = useOperator();
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-100 bg-white/95 backdrop-blur-md md:hidden">
-      <div className="flex h-16 items-center justify-around px-2 pb-safe">
+      {/* 담당자 정보 바 */}
+      <div className="flex items-center justify-between px-4 py-1.5 border-b border-gray-50/80">
+        <p className="text-[10px] text-gray-400">
+          <span className="font-semibold text-gray-600">{operatorName}</span> 담당자
+        </p>
+        <button
+          onClick={clearOperator}
+          className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-red-400 active:scale-95 transition-all"
+        >
+          <LogOut className="h-3 w-3" />
+          전환
+        </button>
+      </div>
+
+      {/* 탭 */}
+      <div className="flex h-14 items-center justify-around px-2 pb-safe">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -27,12 +45,7 @@ export function BottomNav() {
                 active ? "text-blue-600" : "text-gray-400 hover:text-gray-600"
               )}
             >
-              <Icon
-                className={cn(
-                  "h-5 w-5 transition-all",
-                  active && "stroke-[2.5]"
-                )}
-              />
+              <Icon className={cn("h-5 w-5 transition-all", active && "stroke-[2.5]")} />
               <span className="text-[11px] font-medium">{label}</span>
               {active && (
                 <span className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-blue-600 rounded-t-full" />
@@ -47,9 +60,11 @@ export function BottomNav() {
 
 export function SideNav() {
   const pathname = usePathname();
+  const { operatorName, clearOperator } = useOperator();
+
   return (
     <aside className="hidden md:flex flex-col w-60 min-h-screen border-r border-gray-100 bg-white px-4 py-6 gap-1 shrink-0">
-      {/* Logo */}
+      {/* 로고 */}
       <div className="flex items-center gap-3 px-3 mb-8">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-200">
           <Building2 className="h-5 w-5 text-white" />
@@ -60,7 +75,7 @@ export function SideNav() {
         </div>
       </div>
 
-      {/* Nav items */}
+      {/* 내비게이션 항목 */}
       {navItems.map(({ href, label, icon: Icon }) => {
         const active = pathname === href;
         return (
@@ -88,12 +103,20 @@ export function SideNav() {
         );
       })}
 
-      {/* Bottom info */}
-      <div className="mt-auto px-3">
-        <div className="rounded-xl bg-blue-50 p-4">
-          <p className="text-xs font-semibold text-blue-700">아르딤 복지관</p>
-          <p className="text-[11px] text-blue-400 mt-0.5">v1.0.0</p>
+      {/* 하단 — 담당자 정보 + 로그아웃 */}
+      <div className="mt-auto px-3 space-y-2">
+        <div className="rounded-xl bg-blue-50 p-3">
+          <p className="text-[10px] font-medium text-blue-400 uppercase tracking-wide">현재 담당자</p>
+          <p className="text-sm font-bold text-blue-700 mt-0.5 truncate">{operatorName}</p>
+          <p className="text-[10px] text-blue-300 mt-0.5">아르딤 복지관</p>
         </div>
+        <button
+          onClick={clearOperator}
+          className="w-full flex items-center justify-center gap-2 h-9 rounded-xl border border-gray-200 text-xs font-medium text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 active:scale-[0.98] transition-all"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          담당자 전환
+        </button>
       </div>
     </aside>
   );
