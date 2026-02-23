@@ -20,39 +20,47 @@ export function useOperator(): OperatorContextValue {
 
 // ── Provider ─────────────────────────────────────────
 export function OperatorProvider({ children }: { children: React.ReactNode }) {
-  // null로 초기화 → 마운트 즉시 로그인 화면이 렌더링됨
-  // useEffect에서 localStorage를 확인해 값이 있으면 앱으로 전환
-  const [operatorName, setOperatorName] = useState<string | null>(null);
+  /**
+   * isConfirmed: 매 접속/새로고침마다 false로 시작.
+   * 사용자가 확인 버튼을 눌러야만 true가 되고 앱이 열림.
+   * localStorage에 이름이 저장되어 있어도 자동 통과하지 않음.
+   */
+  const [isConfirmed,  setIsConfirmed]  = useState(false);
+  const [operatorName, setOperatorName] = useState("");
   const [inputValue,   setInputValue]   = useState("");
   const [error,        setError]        = useState("");
 
+  // 이전에 저장된 이름을 입력창에 pre-fill (자동 로그인 X)
   useEffect(() => {
     const saved = localStorage.getItem(OPERATOR_KEY);
-    if (saved) setOperatorName(saved);
+    if (saved) setInputValue(saved);
   }, []);
 
-  const handleLogin = () => {
+  const handleConfirm = () => {
     const name = inputValue.trim();
     if (!name) {
       setError("담당자 이름을 입력해 주세요.");
       return;
     }
+    // 이름 저장 (다음 접속 시 pre-fill용)
     localStorage.setItem(OPERATOR_KEY, name);
     setOperatorName(name);
+    setIsConfirmed(true);
     setError("");
   };
 
+  // 담당자 전환: 확인 상태만 초기화, localStorage는 pre-fill용으로 유지
   const clearOperator = () => {
-    localStorage.removeItem(OPERATOR_KEY);
-    setOperatorName(null);
-    setInputValue("");
+    setIsConfirmed(false);
+    setOperatorName("");
   };
 
-  // 담당자 미설정 → 로그인 화면 (초기 렌더링 포함, 무조건 표시)
-  if (!operatorName) {
+  // ── 확인 전 → 로그인/확인 화면 ──────────────────────
+  if (!isConfirmed) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-xl shadow-blue-100/60 p-8 w-full max-w-sm border border-gray-100">
+
           {/* 로고 */}
           <div className="flex flex-col items-center mb-8">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-300/50 mb-4">
@@ -66,7 +74,7 @@ export function OperatorProvider({ children }: { children: React.ReactNode }) {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-semibold text-gray-700 block mb-1.5">
-                담당자 이름
+                담당자 이름 확인
               </label>
               <div className="relative">
                 <UserCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-400" />
@@ -74,7 +82,7 @@ export function OperatorProvider({ children }: { children: React.ReactNode }) {
                   type="text"
                   value={inputValue}
                   onChange={(e) => { setInputValue(e.target.value); setError(""); }}
-                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                  onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
                   placeholder="예) 홍길동"
                   autoFocus
                   className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100/60 transition-all bg-gray-50/40 placeholder:text-gray-300"
@@ -83,13 +91,19 @@ export function OperatorProvider({ children }: { children: React.ReactNode }) {
               {error && (
                 <p className="text-xs text-red-500 mt-1.5 pl-1">{error}</p>
               )}
+              {/* pre-fill 안내 */}
+              {inputValue && (
+                <p className="text-[11px] text-blue-400 mt-1.5 pl-1">
+                  이전에 사용한 이름입니다. 확인 후 입장하세요.
+                </p>
+              )}
             </div>
 
             <button
-              onClick={handleLogin}
+              onClick={handleConfirm}
               className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 active:scale-[0.98] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-200/50"
             >
-              시작하기
+              확인하고 입장하기
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -103,7 +117,7 @@ export function OperatorProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // 담당자 설정 완료 → 앱 렌더
+  // ── 확인 완료 → 앱 렌더 ──────────────────────────────
   return (
     <OperatorContext.Provider value={{ operatorName, clearOperator }}>
       {children}
