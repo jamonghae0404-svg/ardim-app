@@ -20,16 +20,15 @@ export function useOperator(): OperatorContextValue {
 
 // ── Provider ─────────────────────────────────────────
 export function OperatorProvider({ children }: { children: React.ReactNode }) {
+  // null로 초기화 → 마운트 즉시 로그인 화면이 렌더링됨
+  // useEffect에서 localStorage를 확인해 값이 있으면 앱으로 전환
   const [operatorName, setOperatorName] = useState<string | null>(null);
-  const [isLoaded,     setIsLoaded]     = useState(false);
   const [inputValue,   setInputValue]   = useState("");
   const [error,        setError]        = useState("");
 
-  // localStorage에서 담당자 이름 로드
   useEffect(() => {
     const saved = localStorage.getItem(OPERATOR_KEY);
-    setOperatorName(saved ?? null);
-    setIsLoaded(true);
+    if (saved) setOperatorName(saved);
   }, []);
 
   const handleLogin = () => {
@@ -49,10 +48,7 @@ export function OperatorProvider({ children }: { children: React.ReactNode }) {
     setInputValue("");
   };
 
-  // 로딩 중 (localStorage 확인 전)
-  if (!isLoaded) return null;
-
-  // 담당자 미설정 → 로그인 화면
+  // 담당자 미설정 → 로그인 화면 (초기 렌더링 포함, 무조건 표시)
   if (!operatorName) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4">
