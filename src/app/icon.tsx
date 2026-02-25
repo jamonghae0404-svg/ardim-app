@@ -120,7 +120,7 @@ export default function Icon() {
               }}
             >
               {/* Checkmark — two-rectangle approach */}
-              <div style={{ position: 'relative', width: 64, height: 52 }}>
+              <div style={{ position: 'relative', display: 'flex', width: 64, height: 52 }}>
                 {/* Short left arm */}
                 <div
                   style={{

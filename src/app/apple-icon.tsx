@@ -116,7 +116,7 @@ export default function AppleIcon() {
               }}
             >
               {/* Checkmark */}
-              <div style={{ position: 'relative', width: 24, height: 20 }}>
+              <div style={{ position: 'relative', display: 'flex', width: 24, height: 20 }}>
                 {/* Short left arm */}
                 <div
                   style={{

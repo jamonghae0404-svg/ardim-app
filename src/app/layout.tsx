@@ -54,10 +54,8 @@ export default function RootLayout({
             </main>
           </div>
           <BottomNav />
+          <PwaInstallButton />
         </OperatorProvider>
-
-        {/* PWA 설치 버튼 — OperatorProvider 외부에서 항상 표시 */}
-        <PwaInstallButton />
 
         <Script id="sw-register" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) {

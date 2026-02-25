@@ -1,12 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { OPERATOR_KEY } from "@/lib/storage";
 import { Building2, UserCircle2, ArrowRight } from "lucide-react";
 
 // ── Context ──────────────────────────────────────────
 interface OperatorContextValue {
   operatorName: string;
+  isLoggedIn: boolean;
   clearOperator: () => void;
 }
 
@@ -18,7 +19,7 @@ export function useOperator(): OperatorContextValue {
   return ctx;
 }
 
-// ── 로그인 UI (같은 파일에 정의 — import 경로 오류 없음) ──
+// ── 로그인 UI ─────────────────────────────────────────
 function OperatorLogin({ onConfirm }: { onConfirm: (name: string) => void }) {
   const [inputValue, setInputValue] = useState("");
   const [error,      setError]      = useState("");
@@ -26,7 +27,6 @@ function OperatorLogin({ onConfirm }: { onConfirm: (name: string) => void }) {
   const handleSubmit = () => {
     const name = inputValue.trim();
     if (!name) { setError("담당자 이름을 입력해 주세요."); return; }
-    localStorage.setItem(OPERATOR_KEY, name);
     onConfirm(name);
   };
 
@@ -78,26 +78,41 @@ function OperatorLogin({ onConfirm }: { onConfirm: (name: string) => void }) {
 
 // ── Provider ─────────────────────────────────────────
 export function OperatorProvider({ children }: { children: React.ReactNode }) {
-  // 디버그: 컴포넌트가 실제로 클라이언트에서 실행되는지 확인
-  if (typeof window !== "undefined") {
-    window.alert("OperatorProvider 로드됨 — 클라이언트 정상 실행");
-  }
-
-  // 무조건 null 시작 / useEffect 없음 / localStorage 자동 읽기 없음
   const [operatorName, setOperatorName] = useState<string | null>(null);
+  const [isHydrated,   setIsHydrated]   = useState(false);
 
-  // operatorName이 null이면 무조건 로그인 화면만 출력
-  if (!operatorName) {
+  // 세션 복구: 새로고침 시 localStorage에서 담당자 이름 복원
+  useEffect(() => {
+    const saved = localStorage.getItem(OPERATOR_KEY);
+    if (saved) setOperatorName(saved);
+    setIsHydrated(true);
+  }, []);
+
+  const handleConfirm = (name: string) => {
+    localStorage.setItem(OPERATOR_KEY, name);
+    setOperatorName(name);
+  };
+
+  const clearOperator = () => {
+    localStorage.removeItem(OPERATOR_KEY);
+    setOperatorName(null);
+  };
+
+  // 하이드레이션 전: 레이아웃 깜빡임 방지용 빈 화면
+  if (!isHydrated) {
     return (
-      <div style={{ padding: "0", background: "white", zIndex: 9999, minHeight: "100vh" }}>
-        <OperatorLogin onConfirm={(name) => setOperatorName(name)} />
-      </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100" />
     );
   }
 
-  // operatorName 있을 때만 children 렌더
+  // 로그인 전: 담당자 확인 화면
+  if (!operatorName) {
+    return <OperatorLogin onConfirm={handleConfirm} />;
+  }
+
+  // 로그인 후: 앱 렌더링
   return (
-    <OperatorContext.Provider value={{ operatorName, clearOperator: () => setOperatorName(null) }}>
+    <OperatorContext.Provider value={{ operatorName, isLoggedIn: true, clearOperator }}>
       {children}
     </OperatorContext.Provider>
   );

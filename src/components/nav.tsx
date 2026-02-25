@@ -21,7 +21,7 @@ export function BottomNav() {
       {/* 담당자 정보 바 */}
       <div className="flex items-center justify-between px-4 py-1.5 border-b border-gray-50/80">
         <p className="text-[10px] text-gray-400">
-          <span className="font-semibold text-gray-600">{operatorName}</span> 담당자
+          <span className="font-semibold text-gray-600">{operatorName || "담당자"}</span> 담당자
         </p>
         <button
           onClick={clearOperator}
@@ -107,7 +107,7 @@ export function SideNav() {
       <div className="mt-auto px-3 space-y-2">
         <div className="rounded-xl bg-blue-50 p-3">
           <p className="text-[10px] font-medium text-blue-400 uppercase tracking-wide">현재 담당자</p>
-          <p className="text-sm font-bold text-blue-700 mt-0.5 truncate">{operatorName}</p>
+          <p className="text-sm font-bold text-blue-700 mt-0.5 truncate">{operatorName || "담당자"}</p>
           <p className="text-[10px] text-blue-300 mt-0.5">아르딤 복지관</p>
         </div>
         <button
