@@ -9,14 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
-  getStorageKeys, getTodayKey, formatDateKR, calcStats,
+  getTodayKey, formatDateKR, calcStats,
   type Program, type Member, type AttendanceData, type AttendanceStatus,
 } from "@/lib/storage";
+import { fetchPrograms, fetchMembers, fetchAttendance, saveAttendance } from "@/lib/db";
 import { useOperator } from "@/components/operator-provider";
 
-// ─────────────────────────────────────────────────────
-// 출석 상태 버튼
-// ─────────────────────────────────────────────────────
+// ── 출석 상태 버튼 ────────────────────────────────────
 function StatusButtons({
   status,
   onToggle,
@@ -52,14 +51,9 @@ function StatusButtons({
   );
 }
 
-// ─────────────────────────────────────────────────────
-// 단일 멤버 행
-// ─────────────────────────────────────────────────────
+// ── 단일 멤버 행 ──────────────────────────────────────
 function MemberRow({
-  index,
-  member,
-  status,
-  onToggle,
+  index, member, status, onToggle,
 }: {
   index: number;
   member: Member;
@@ -90,13 +84,9 @@ function MemberRow({
   );
 }
 
-// ─────────────────────────────────────────────────────
-// 멤버 목록
-// ─────────────────────────────────────────────────────
+// ── 멤버 목록 ─────────────────────────────────────────
 function MemberList({
-  members,
-  dayRecord,
-  onToggle,
+  members, dayRecord, onToggle,
 }: {
   members: Member[];
   dayRecord: Record<string, AttendanceStatus>;
@@ -126,66 +116,66 @@ function MemberList({
   );
 }
 
-// ─────────────────────────────────────────────────────
-// 메인 페이지
-// ─────────────────────────────────────────────────────
+// ── 로딩 스피너 ───────────────────────────────────────
+function Spinner() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <div className="h-7 w-7 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+    </div>
+  );
+}
+
+// ── 메인 페이지 ───────────────────────────────────────
 export default function AttendancePage() {
   const { operatorName } = useOperator();
 
   const [programs,       setPrograms]       = useState<Program[]>([]);
-  const [members,        setMembers]         = useState<Member[]>([]);
-  const [attendanceData, setAttendanceData]  = useState<AttendanceData>({});
-  const [selectedDate,   setSelectedDate]    = useState(getTodayKey());
-  const [activeTab,      setActiveTab]       = useState("all");
-  const [isLoaded,       setIsLoaded]        = useState(false);
+  const [members,        setMembers]        = useState<Member[]>([]);
+  const [attendanceData, setAttendanceData] = useState<AttendanceData>({});
+  const [selectedDate,   setSelectedDate]   = useState(getTodayKey());
+  const [activeTab,      setActiveTab]      = useState("all");
+  const [isLoading,      setIsLoading]      = useState(true);
 
-  // ── localStorage 로드 ────────────────────────────────
+  // ── Supabase 로드 ─────────────────────────────────
   useEffect(() => {
-    const KEYS = getStorageKeys(operatorName);
-    try {
-      const p = localStorage.getItem(KEYS.PROGRAMS);
-      const m = localStorage.getItem(KEYS.MEMBERS);
-      const a = localStorage.getItem(KEYS.ATTENDANCE);
-      if (p) setPrograms(JSON.parse(p));
-      if (m) setMembers(JSON.parse(m));
-      if (a) setAttendanceData(JSON.parse(a));
-    } catch { /* 손상된 데이터 무시 */ }
-    setIsLoaded(true);
+    let cancelled = false;
+    setIsLoading(true);
+    Promise.all([
+      fetchPrograms(operatorName),
+      fetchMembers(operatorName),
+      fetchAttendance(operatorName),
+    ]).then(([p, m, a]) => {
+      if (cancelled) return;
+      setPrograms(p);
+      setMembers(m);
+      setAttendanceData(a);
+      setIsLoading(false);
+    });
+    return () => { cancelled = true; };
   }, [operatorName]);
 
-  // ── 출석 데이터 저장 ─────────────────────────────────
-  useEffect(() => {
-    if (!isLoaded) return;
-    localStorage.setItem(
-      getStorageKeys(operatorName).ATTENDANCE,
-      JSON.stringify(attendanceData)
-    );
-  }, [attendanceData, isLoaded, operatorName]);
-
-  // ── 출석 토글 ─────────────────────────────────────────
+  // ── 출석 토글 (낙관적 업데이트 + Supabase 백그라운드 저장) ──
   const toggleStatus = (memberId: string, next: "present" | "absent") => {
     const current = attendanceData[selectedDate]?.[memberId] ?? "unset";
     const newStatus: AttendanceStatus = current === next ? "unset" : next;
+
     setAttendanceData((prev) => ({
       ...prev,
       [selectedDate]: { ...prev[selectedDate], [memberId]: newStatus },
     }));
+
+    saveAttendance(operatorName, memberId, selectedDate, newStatus);
   };
 
-  // ── 계산 ─────────────────────────────────────────────
-  const dayRecord = attendanceData[selectedDate] ?? {};
+  // ── 계산 ─────────────────────────────────────────
+  const dayRecord      = attendanceData[selectedDate] ?? {};
+  const membersForTab  = (tab: string) =>
+    tab === "all" ? members : members.filter((m) => m.programId === tab);
+  const activeMembers  = membersForTab(activeTab);
+  const stats          = calcStats(activeMembers, dayRecord);
+  const isToday        = selectedDate === getTodayKey();
 
-  const membersForTab = (tabValue: string) =>
-    tabValue === "all"
-      ? members
-      : members.filter((m) => m.programId === tabValue);
-
-  const activeMembers = membersForTab(activeTab);
-  const stats = calcStats(activeMembers, dayRecord);
-
-  const isToday = selectedDate === getTodayKey();
-
-  // ── 렌더 ─────────────────────────────────────────────
+  // ── 렌더 ─────────────────────────────────────────
   return (
     <div className="flex-1 p-4 md:p-6 pb-24 md:pb-6 space-y-4 max-w-5xl mx-auto w-full">
 
@@ -202,7 +192,6 @@ export default function AttendancePage() {
             )}
           </p>
         </div>
-        {/* 날짜 선택 */}
         <input
           type="date"
           value={selectedDate}
@@ -211,142 +200,140 @@ export default function AttendancePage() {
         />
       </div>
 
-      {/* 통계 벤토 카드 */}
-      <div className="grid grid-cols-4 gap-2 md:gap-3">
-        {/* 출석률 */}
-        <Card className="col-span-2 border-0 bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-200/50">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-blue-200 text-[10px] font-semibold uppercase tracking-wide">출석률</p>
-              <p className="text-4xl font-bold mt-0.5">
-                {stats.rate}<span className="text-xl text-blue-200">%</span>
-              </p>
-              <p className="text-blue-200 text-[11px] mt-1">
-                {stats.total}명 중 {stats.present}명
-              </p>
-            </div>
-            <TrendingUp className="h-8 w-8 text-white/50" />
-          </CardContent>
-        </Card>
+      {isLoading ? <Spinner /> : (
+        <>
+          {/* 통계 카드 */}
+          <div className="grid grid-cols-4 gap-2 md:gap-3">
+            <Card className="col-span-2 border-0 bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-200/50">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-blue-200 text-[10px] font-semibold uppercase tracking-wide">출석률</p>
+                  <p className="text-4xl font-bold mt-0.5">
+                    {stats.rate}<span className="text-xl text-blue-200">%</span>
+                  </p>
+                  <p className="text-blue-200 text-[11px] mt-1">
+                    {stats.total}명 중 {stats.present}명
+                  </p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-white/50" />
+              </CardContent>
+            </Card>
 
-        {/* 출석 */}
-        <Card className="border-0 bg-emerald-50 shadow-sm">
-          <CardContent className="p-3 md:p-4">
-            <div className="flex items-center gap-1 mb-2">
-              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-              <span className="text-[10px] text-emerald-600 font-bold uppercase">출석</span>
-            </div>
-            <p className="text-3xl font-bold text-emerald-700">{stats.present}</p>
-          </CardContent>
-        </Card>
+            <Card className="border-0 bg-emerald-50 shadow-sm">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex items-center gap-1 mb-2">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                  <span className="text-[10px] text-emerald-600 font-bold uppercase">출석</span>
+                </div>
+                <p className="text-3xl font-bold text-emerald-700">{stats.present}</p>
+              </CardContent>
+            </Card>
 
-        {/* 결석 */}
-        <Card className="border-0 bg-red-50 shadow-sm">
-          <CardContent className="p-3 md:p-4">
-            <div className="flex items-center gap-1 mb-2">
-              <XCircle className="h-3 w-3 text-red-400" />
-              <span className="text-[10px] text-red-500 font-bold uppercase">결석</span>
-            </div>
-            <p className="text-3xl font-bold text-red-600">{stats.absent}</p>
-          </CardContent>
-        </Card>
+            <Card className="border-0 bg-red-50 shadow-sm">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex items-center gap-1 mb-2">
+                  <XCircle className="h-3 w-3 text-red-400" />
+                  <span className="text-[10px] text-red-500 font-bold uppercase">결석</span>
+                </div>
+                <p className="text-3xl font-bold text-red-600">{stats.absent}</p>
+              </CardContent>
+            </Card>
 
-        {/* 미체크 */}
-        <Card className="col-span-2 border-0 bg-gray-50 shadow-sm">
-          <CardContent className="p-3 md:p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <HelpCircle className="h-4 w-4 text-gray-400" />
-              <span className="text-xs text-gray-500 font-medium">미체크</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-500">{stats.unset}</span>
-          </CardContent>
-        </Card>
+            <Card className="col-span-2 border-0 bg-gray-50 shadow-sm">
+              <CardContent className="p-3 md:p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4 text-gray-400" />
+                  <span className="text-xs text-gray-500 font-medium">미체크</span>
+                </div>
+                <span className="text-2xl font-bold text-gray-500">{stats.unset}</span>
+              </CardContent>
+            </Card>
 
-        {/* 전체 */}
-        <Card className="col-span-2 border-0 bg-gray-50 shadow-sm">
-          <CardContent className="p-3 md:p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-400" />
-              <span className="text-xs text-gray-500 font-medium">전체 인원</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-500">{stats.total}</span>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="col-span-2 border-0 bg-gray-50 shadow-sm">
+              <CardContent className="p-3 md:p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-gray-400" />
+                  <span className="text-xs text-gray-500 font-medium">전체 인원</span>
+                </div>
+                <span className="text-2xl font-bold text-gray-500">{stats.total}</span>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* 프로그램 탭 + 명단 */}
-      <Card className="border-0 bg-white shadow-sm">
-        <CardHeader className="pb-0 px-5 pt-5">
-          <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
-            <ClipboardCheck className="h-4 w-4 text-blue-500" />
-            출석 명단
-          </CardTitle>
+          {/* 프로그램 탭 + 명단 */}
+          <Card className="border-0 bg-white shadow-sm">
+            <CardHeader className="pb-0 px-5 pt-5">
+              <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                <ClipboardCheck className="h-4 w-4 text-blue-500" />
+                출석 명단
+              </CardTitle>
 
-          {programs.length === 0 ? (
-            <div className="py-2 mb-1">
-              <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                관리자 페이지에서 프로그램과 이용자를 먼저 등록해 주세요.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto -mx-1 pb-1">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)}>
-                <TabsList className="bg-gray-100 p-1 rounded-xl flex w-max gap-0.5">
-                  <TabsTrigger
-                    value="all"
-                    className="rounded-lg px-3 py-1.5 text-xs font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
-                  >
-                    전체
-                    <span className="ml-1.5 text-[10px] bg-gray-200 data-[state=active]:bg-blue-100 px-1 rounded-full">
-                      {members.length}
-                    </span>
-                  </TabsTrigger>
-                  {programs.map((p) => {
-                    const count = members.filter((m) => m.programId === p.id).length;
-                    return (
+              {programs.length === 0 ? (
+                <div className="py-2 mb-1">
+                  <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+                    관리자 페이지에서 프로그램과 이용자를 먼저 등록해 주세요.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto -mx-1 pb-1">
+                  <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="bg-gray-100 p-1 rounded-xl flex w-max gap-0.5">
                       <TabsTrigger
-                        key={p.id}
-                        value={p.id}
+                        value="all"
                         className="rounded-lg px-3 py-1.5 text-xs font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
                       >
-                        {p.name}
-                        <span className="ml-1.5 text-[10px] bg-gray-200 px-1 rounded-full">
-                          {count}
+                        전체
+                        <span className="ml-1.5 text-[10px] bg-gray-200 data-[state=active]:bg-blue-100 px-1 rounded-full">
+                          {members.length}
                         </span>
                       </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
+                      {programs.map((p) => {
+                        const count = members.filter((m) => m.programId === p.id).length;
+                        return (
+                          <TabsTrigger
+                            key={p.id}
+                            value={p.id}
+                            className="rounded-lg px-3 py-1.5 text-xs font-medium data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
+                          >
+                            {p.name}
+                            <span className="ml-1.5 text-[10px] bg-gray-200 px-1 rounded-full">
+                              {count}
+                            </span>
+                          </TabsTrigger>
+                        );
+                      })}
+                    </TabsList>
 
-                <TabsContent value="all" className="mt-0 pt-3">
-                  <MemberList members={members} dayRecord={dayRecord} onToggle={toggleStatus} />
-                </TabsContent>
-                {programs.map((p) => (
-                  <TabsContent key={p.id} value={p.id} className="mt-0 pt-3">
-                    <MemberList
-                      members={members.filter((m) => m.programId === p.id)}
-                      dayRecord={dayRecord}
-                      onToggle={toggleStatus}
-                    />
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </div>
-          )}
-        </CardHeader>
+                    <TabsContent value="all" className="mt-0 pt-3">
+                      <MemberList members={members} dayRecord={dayRecord} onToggle={toggleStatus} />
+                    </TabsContent>
+                    {programs.map((p) => (
+                      <TabsContent key={p.id} value={p.id} className="mt-0 pt-3">
+                        <MemberList
+                          members={members.filter((m) => m.programId === p.id)}
+                          dayRecord={dayRecord}
+                          onToggle={toggleStatus}
+                        />
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </div>
+              )}
+            </CardHeader>
 
-        {programs.length === 0 && (
-          <CardContent className="px-5 pb-5">
-            <MemberList members={[]} dayRecord={{}} onToggle={() => {}} />
-          </CardContent>
-        )}
-      </Card>
+            {programs.length === 0 && (
+              <CardContent className="px-5 pb-5">
+                <MemberList members={[]} dayRecord={{}} onToggle={() => {}} />
+              </CardContent>
+            )}
+          </Card>
 
-      {/* 날짜별 저장 안내 */}
-      <p className="text-center text-[11px] text-gray-300 pb-2">
-        <Calendar className="inline h-3 w-3 mr-1" />
-        출석 기록은 날짜별로 자동 저장됩니다.
-      </p>
+          <p className="text-center text-[11px] text-gray-300 pb-2">
+            <Calendar className="inline h-3 w-3 mr-1" />
+            출석 기록은 Supabase에 실시간 저장됩니다.
+          </p>
+        </>
+      )}
     </div>
   );
 }

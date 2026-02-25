@@ -12,15 +12,21 @@
   "icons": [
     {
       "src": "/icon",
-      "sizes": "192x192",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -28,15 +34,15 @@
       "name": "출석 체크",
       "short_name": "출석",
       "description": "빠른 출석 체크",
-      "url": "/",
-      "icons": [{ "src": "/icon", "sizes": "96x96" }]
+      "url": "/attendance",
+      "icons": [{ "src": "/icon", "sizes": "512x512" }]
     },
     {
       "name": "통계 보기",
       "short_name": "통계",
       "description": "출석 통계 확인",
       "url": "/stats",
-      "icons": [{ "src": "/icon", "sizes": "96x96" }]
+      "icons": [{ "src": "/icon", "sizes": "512x512" }]
     }
   ]
 }

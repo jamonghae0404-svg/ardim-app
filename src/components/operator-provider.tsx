@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
-import { OPERATOR_KEY } from "@/lib/storage";
+import { createContext, useContext, useState } from "react";
 import { Building2, UserCircle2, ArrowRight } from "lucide-react";
 
 // ── Context ──────────────────────────────────────────
@@ -69,7 +68,8 @@ function OperatorLogin({ onConfirm }: { onConfirm: (name: string) => void }) {
         </div>
 
         <p className="text-center text-[11px] text-gray-400 mt-6 leading-relaxed">
-          담당자 이름별로 명단과 출석 기록이<br />별도로 저장·관리됩니다.
+          접속할 때마다 담당자 확인이 필요합니다.<br />
+          데이터는 클라우드(Supabase)에 안전하게 보관됩니다.
         </p>
       </div>
     </div>
@@ -77,42 +77,22 @@ function OperatorLogin({ onConfirm }: { onConfirm: (name: string) => void }) {
 }
 
 // ── Provider ─────────────────────────────────────────
+// 스토리지 미사용: 새로고침 시 항상 로그인 화면 표시
 export function OperatorProvider({ children }: { children: React.ReactNode }) {
   const [operatorName, setOperatorName] = useState<string | null>(null);
-  const [isHydrated,   setIsHydrated]   = useState(false);
 
-  // 세션 복구: 새로고침 시 localStorage에서 담당자 이름 복원
-  useEffect(() => {
-    const saved = localStorage.getItem(OPERATOR_KEY);
-    if (saved) setOperatorName(saved);
-    setIsHydrated(true);
-  }, []);
-
-  const handleConfirm = (name: string) => {
-    localStorage.setItem(OPERATOR_KEY, name);
-    setOperatorName(name);
-  };
-
-  const clearOperator = () => {
-    localStorage.removeItem(OPERATOR_KEY);
-    setOperatorName(null);
-  };
-
-  // 하이드레이션 전: 레이아웃 깜빡임 방지용 빈 화면
-  if (!isHydrated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100" />
-    );
-  }
-
-  // 로그인 전: 담당자 확인 화면
   if (!operatorName) {
-    return <OperatorLogin onConfirm={handleConfirm} />;
+    return <OperatorLogin onConfirm={setOperatorName} />;
   }
 
-  // 로그인 후: 앱 렌더링
   return (
-    <OperatorContext.Provider value={{ operatorName, isLoggedIn: true, clearOperator }}>
+    <OperatorContext.Provider
+      value={{
+        operatorName,
+        isLoggedIn: true,
+        clearOperator: () => setOperatorName(null),
+      }}
+    >
       {children}
     </OperatorContext.Provider>
   );
